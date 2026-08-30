@@ -37,7 +37,7 @@ public sealed class CveCollectionService(
         }
         while (!stoppingToken.IsCancellationRequested)
         {
-            CveOptions current = options.CurrentValue;
+            var current = options.CurrentValue;
             if (current.Enabled)
             {
                 await RunOnceAsync(current, stoppingToken).ConfigureAwait(false);
@@ -80,7 +80,7 @@ public sealed class CveCollectionService(
             return 0;
         }
         var written = 0;
-        foreach (CveAdvisory advisory in collected)
+        foreach (var advisory in collected)
         {
             if (cancellationToken.IsCancellationRequested)
             {

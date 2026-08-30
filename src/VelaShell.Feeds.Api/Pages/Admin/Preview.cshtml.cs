@@ -1,7 +1,6 @@
-using System.Text;
-using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Text.Json;
 using VelaShell.Feeds.Api.Services;
 
 namespace VelaShell.Feeds.Api.Pages.Admin;
@@ -30,13 +29,13 @@ public sealed class PreviewModel(FeedCacheService feed) : PageModel
     /// <summary>载入当前 feed。</summary>
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
-        CachedFeed current = await feed.GetAsync(cancellationToken);
+        var current = await feed.GetAsync(cancellationToken);
         ItemCount = current.ItemCount;
         ETag = current.ETag;
         RenderedAt = current.RenderedAt;
 
         // 缓存里存的是压缩过的字节(那才是真正下发的东西);这里重新缩进只为了人能读。
-        using JsonDocument document = JsonDocument.Parse(current.Payload);
+        using var document = JsonDocument.Parse(current.Payload);
         Json = JsonSerializer.Serialize(document, new JsonSerializerOptions { WriteIndented = true });
     }
 

@@ -62,7 +62,7 @@ public sealed class AdvisoriesModel(
     /// </summary>
     public async Task<IActionResult> OnPostCollectAsync(CancellationToken cancellationToken)
     {
-        int written = await collector.RunOnceAsync(cveOptions.CurrentValue, cancellationToken);
+        var written = await collector.RunOnceAsync(cveOptions.CurrentValue, cancellationToken);
         feed.Invalidate();
         Message = $"采集完成,写入 {written} 条。";
         return RedirectToPage();

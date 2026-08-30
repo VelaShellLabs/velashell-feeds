@@ -49,7 +49,7 @@ public sealed class InternalAuthorityDocumentRetriever : IDocumentRetriever
     {
         _internalAuthority = internalAuthority.TrimEnd('/');
         var client = new HttpClient();
-        if (Uri.TryCreate(issuer, UriKind.Absolute, out Uri? issuerUri))
+        if (Uri.TryCreate(issuer, UriKind.Absolute, out var issuerUri))
         {
             // 让认证服务**以为**这个请求是从对外地址进来的。两个头各管一件事:
             //
@@ -88,8 +88,8 @@ public sealed class InternalAuthorityDocumentRetriever : IDocumentRetriever
         // 必须显式校验 scheme:漏写协议的 "identity:8080" 会被 Uri.TryCreate 当成**合法的绝对 URI**
         // (scheme=identity、path=8080),照着它重写会拼出谁也连不上的地址。
         // 宁可原样返回,把问题留给启动校验去大声报出来。
-        if (!Uri.TryCreate(address, UriKind.Absolute, out Uri? target)
-            || !Uri.TryCreate(internalAuthority, UriKind.Absolute, out Uri? authority)
+        if (!Uri.TryCreate(address, UriKind.Absolute, out var target)
+            || !Uri.TryCreate(internalAuthority, UriKind.Absolute, out var authority)
             || (authority.Scheme != Uri.UriSchemeHttp && authority.Scheme != Uri.UriSchemeHttps))
         {
             return address;

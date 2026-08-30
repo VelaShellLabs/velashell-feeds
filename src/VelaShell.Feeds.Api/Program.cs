@@ -1,10 +1,9 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using VelaShell.Feeds.Api;
 using VelaShell.Feeds.Api.Options;
 using VelaShell.Feeds.Api.Services;
@@ -12,13 +11,13 @@ using VelaShell.Feeds.Domain;
 using VelaShell.Feeds.Infrastructure;
 using VelaShell.Feeds.Infrastructure.Cve;
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 // ---- 配置 --------------------------------------------------------------------
 builder.Services.Configure<FeedsAuthOptions>(builder.Configuration.GetSection(FeedsAuthOptions.SectionName));
 builder.Services.Configure<CveOptions>(builder.Configuration.GetSection(CveOptions.SectionName));
 builder.Services.Configure<FeedCompositionOptions>(builder.Configuration.GetSection("Feed"));
-FeedsAuthOptions auth = builder.Configuration.GetSection(FeedsAuthOptions.SectionName).Get<FeedsAuthOptions>() ?? new();
+var auth = builder.Configuration.GetSection(FeedsAuthOptions.SectionName).Get<FeedsAuthOptions>() ?? new();
 
 // ---- 数据 --------------------------------------------------------------------
 builder.Services.AddSingleton(_ =>
@@ -116,7 +115,7 @@ builder.Services.AddAuthorizationBuilder()
            {
                // 主体的取法要与别处完全一致,两处分叉的话换一次声明映射就会出现
                // "这里认得出你、那里认不出你"。
-               string? subject = context.User.FindFirst("sub")?.Value
+               var subject = context.User.FindFirst("sub")?.Value
                                  ?? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                return context.User.Identity?.IsAuthenticated == true && auth.IsAdmin(subject);
            }));
@@ -129,10 +128,10 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AllowAnonymousToPage("/Admin/Denied");
 });
 
-WebApplication app = builder.Build();
+var app = builder.Build();
 
 // 启动即建索引;库还没起来时不该让整个服务起不来,记一条日志继续。
-using (IServiceScope scope = app.Services.CreateScope())
+using (var scope = app.Services.CreateScope())
 {
     try
     {
@@ -157,7 +156,7 @@ app.UseAuthorization();
 // VelaShell 客户端拉的就是这个。它是匿名的:要求认证等于要求每台客户端都有账号。
 app.MapGet("/feed.json", async (FeedCacheService feed, HttpContext http, CancellationToken cancel) =>
 {
-    CachedFeed current = await feed.GetAsync(cancel);
+    var current = await feed.GetAsync(cancel);
     http.Response.Headers.ETag = current.ETag;
     // 客户端不发条件请求,但中间的 CDN / 反代会用;5 分钟与渲染缓存对齐。
     http.Response.Headers.CacheControl = "public, max-age=300";

@@ -50,7 +50,7 @@ public class FeedComposerTests
     [TestMethod]
     public void Compose_OnlyIncludesPublishedEntries()
     {
-        FeedDocument document = FeedComposer.Compose(
+        var document = FeedComposer.Compose(
             [Entry("live"), Entry("draft", EntryStatus.Draft), Entry("archived", EntryStatus.Archived)],
             [], new(), Now);
 
@@ -62,7 +62,7 @@ public class FeedComposerTests
     [TestMethod]
     public void Compose_RespectsSchedulingWindow()
     {
-        FeedDocument document = FeedComposer.Compose(
+        var document = FeedComposer.Compose(
             [
                 Entry("future", published: Now.AddHours(2)),
                 Entry("expired", published: Now.AddDays(-5), expires: Now.AddDays(-1)),
@@ -85,7 +85,7 @@ public class FeedComposerTests
             .Select(i => Advisory($"CVE-2026-{i:0000}", published: Now.AddHours(-i)))];
         var options = new FeedCompositionOptions { MaxItems = 20, MaxCveItems = 40 };
 
-        FeedDocument document = FeedComposer.Compose([Entry("promo"), Entry("news")], flood, options, Now);
+        var document = FeedComposer.Compose([Entry("promo"), Entry("news")], flood, options, Now);
 
         Assert.HasCount(20, document.Items);
         Assert.Contains(item => item.Id == "promo", document.Items, "手工条目必须留在 feed 里。");
@@ -100,7 +100,7 @@ public class FeedComposerTests
             .Select(i => Advisory($"CVE-2026-{i:0000}", published: Now.AddHours(-i)))];
         var options = new FeedCompositionOptions { MaxItems = 100, MaxCveItems = 5 };
 
-        FeedDocument document = FeedComposer.Compose([], flood, options, Now);
+        var document = FeedComposer.Compose([], flood, options, Now);
 
         Assert.HasCount(5, document.Items);
     }
@@ -113,7 +113,7 @@ public class FeedComposerTests
     {
         var options = new FeedCompositionOptions { MinCvssScore = 9.0 };
 
-        FeedDocument document = FeedComposer.Compose(
+        var document = FeedComposer.Compose(
             [],
             [
                 Advisory("CVE-2026-0001", CveSources.Kev, cvss: 5.0, exploited: true),
@@ -129,7 +129,7 @@ public class FeedComposerTests
     [TestMethod]
     public void Compose_FiltersLowScoreAdvisories()
     {
-        FeedDocument document = FeedComposer.Compose(
+        var document = FeedComposer.Compose(
             [], [Advisory("CVE-2026-0003", cvss: 4.0)], new() { MinCvssScore = 7.0 }, Now);
 
         Assert.IsEmpty(document.Items);
@@ -142,7 +142,7 @@ public class FeedComposerTests
     [TestMethod]
     public void Compose_DeduplicatesAcrossSources_KeepingStrongestSignal()
     {
-        FeedDocument document = FeedComposer.Compose(
+        var document = FeedComposer.Compose(
             [],
             [
                 Advisory("CVE-2026-9999", CveSources.Nvd, cvss: 9.8),
@@ -159,7 +159,7 @@ public class FeedComposerTests
     [TestMethod]
     public void Compose_SkipsSuppressedAdvisories()
     {
-        FeedDocument document = FeedComposer.Compose(
+        var document = FeedComposer.Compose(
             [], [Advisory("CVE-2026-0004", cvss: 9.0, suppressed: true)], new(), Now);
 
         Assert.IsEmpty(document.Items);
@@ -171,7 +171,7 @@ public class FeedComposerTests
     {
         var options = new FeedCompositionOptions { CveLifetimeDays = 30 };
 
-        FeedDocument document = FeedComposer.Compose(
+        var document = FeedComposer.Compose(
             [],
             [
                 Advisory("CVE-2026-0005", published: Now.AddDays(-40), exploited: true),
@@ -188,9 +188,9 @@ public class FeedComposerTests
     public void Compose_GivesAdvisoriesAnExpiry()
     {
         var options = new FeedCompositionOptions { CveLifetimeDays = 30 };
-        DateTime published = Now.AddDays(-1);
+        var published = Now.AddDays(-1);
 
-        FeedDocument document = FeedComposer.Compose(
+        var document = FeedComposer.Compose(
             [], [Advisory("CVE-2026-0007", published: published, exploited: true)], options, Now);
 
         Assert.AreEqual(published.AddDays(30), document.Items[0].ExpiresAt);
@@ -203,12 +203,12 @@ public class FeedComposerTests
     [TestMethod]
     public void Compose_StripsNonHttpsLinks()
     {
-        FeedEntry insecure = Entry("http-link");
+        var insecure = Entry("http-link");
         insecure.Url = "http://example.com";
-        FeedEntry secure = Entry("https-link");
+        var secure = Entry("https-link");
         secure.Url = "https://example.com";
 
-        FeedDocument document = FeedComposer.Compose([insecure, secure], [], new(), Now);
+        var document = FeedComposer.Compose([insecure, secure], [], new(), Now);
 
         Assert.IsNull(document.Items.Single(item => item.Id == "http-link").Url);
         Assert.AreEqual("https://example.com", document.Items.Single(item => item.Id == "https-link").Url);
@@ -218,11 +218,11 @@ public class FeedComposerTests
     [TestMethod]
     public void Compose_OmitsEmptyTargeting()
     {
-        FeedEntry entry = Entry("plain");
-        FeedEntry targeted = Entry("targeted");
+        var entry = Entry("plain");
+        var targeted = Entry("targeted");
         targeted.Targeting.Locales.Add("zh-Hans");
 
-        FeedDocument document = FeedComposer.Compose([entry, targeted], [], new(), Now);
+        var document = FeedComposer.Compose([entry, targeted], [], new(), Now);
 
         Assert.IsNull(document.Items.Single(item => item.Id == "plain").Locales);
         CollectionAssert.AreEqual(new[] { "zh-Hans" }, document.Items.Single(item => item.Id == "targeted").Locales!.ToArray());
@@ -232,7 +232,7 @@ public class FeedComposerTests
     [TestMethod]
     public void Compose_SortsNewestFirst()
     {
-        FeedDocument document = FeedComposer.Compose(
+        var document = FeedComposer.Compose(
             [
                 Entry("old", published: Now.AddDays(-3)),
                 Entry("new", published: Now.AddMinutes(-5)),

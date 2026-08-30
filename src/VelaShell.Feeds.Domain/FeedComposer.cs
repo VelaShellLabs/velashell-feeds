@@ -56,7 +56,7 @@ public static class FeedComposer
                       .Take(options.MaxItems)
                       .Select(ToItem)
         ];
-        int cveBudget = Math.Min(options.MaxCveItems, Math.Max(0, options.MaxItems - manual.Count));
+        var cveBudget = Math.Min(options.MaxCveItems, Math.Max(0, options.MaxItems - manual.Count));
         List<FeedItem> cve =
         [
             .. SelectAdvisories(advisories, options, utcNow)
@@ -77,7 +77,7 @@ public static class FeedComposer
     private static IEnumerable<CveAdvisory> SelectAdvisories(
         IEnumerable<CveAdvisory> advisories, FeedCompositionOptions options, DateTime utcNow)
     {
-        DateTime cutoff = utcNow.AddDays(-options.CveLifetimeDays);
+        var cutoff = utcNow.AddDays(-options.CveLifetimeDays);
         return advisories
                .Where(advisory => !advisory.IsSuppressed)
                .Where(advisory => advisory.PublishedAt > cutoff)
@@ -148,7 +148,7 @@ public static class FeedComposer
     /// </summary>
     private static string? HttpsOrNull(string? url) =>
         NullIfBlank(url) is { } trimmed &&
-        Uri.TryCreate(trimmed, UriKind.Absolute, out Uri? parsed) &&
+        Uri.TryCreate(trimmed, UriKind.Absolute, out var parsed) &&
         parsed.Scheme == Uri.UriSchemeHttps
             ? trimmed
             : null;

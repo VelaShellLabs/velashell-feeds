@@ -1,8 +1,8 @@
-using System.ComponentModel.DataAnnotations;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using MongoDB.Driver;
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using VelaShell.Feeds.Api.Services;
 using VelaShell.Feeds.Domain;
 using VelaShell.Feeds.Infrastructure;
@@ -29,7 +29,7 @@ public sealed class EntryEditModel(FeedsDbContext db, FeedCacheService feed) : P
             Form.PublishedAt = DateTime.UtcNow;
             return Page();
         }
-        FeedEntry? entry = await db.Entries
+        var entry = await db.Entries
             .Find(Builders<FeedEntry>.Filter.Eq(item => item.Id, id))
             .FirstOrDefaultAsync(cancellationToken);
         if (entry is null)
@@ -52,9 +52,9 @@ public sealed class EntryEditModel(FeedsDbContext db, FeedCacheService feed) : P
         {
             return Page();
         }
-        DateTime now = DateTime.UtcNow;
-        string subject = User.FindFirst("sub")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "unknown";
-        FeedEntry entry = Form.ToEntry();
+        var now = DateTime.UtcNow;
+        var subject = User.FindFirst("sub")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+        var entry = Form.ToEntry();
         entry.UpdatedAt = now;
 
         // upsert 但保住创建信息:编辑一条广告不该把"谁在什么时候建的"改掉。
@@ -88,7 +88,7 @@ public sealed class EntryEditModel(FeedsDbContext db, FeedCacheService feed) : P
     private void Validate()
     {
         if (!string.IsNullOrWhiteSpace(Form.Url) &&
-            !(Uri.TryCreate(Form.Url, UriKind.Absolute, out Uri? parsed) && parsed.Scheme == Uri.UriSchemeHttps))
+            !(Uri.TryCreate(Form.Url, UriKind.Absolute, out var parsed) && parsed.Scheme == Uri.UriSchemeHttps))
         {
             ModelState.AddModelError("Form.Url", "外链必须是 https —— 客户端会丢弃其它协议的链接，条目会变得点不动。");
         }
@@ -101,7 +101,7 @@ public sealed class EntryEditModel(FeedsDbContext db, FeedCacheService feed) : P
             ModelState.AddModelError("Form.Severity",
                 "运营消息不该用 critical：那个警示徽标是留给安全公告的，用它发促销会让用户不再相信这个信号。");
         }
-        foreach (string? version in new[] { Form.MinVersion, Form.MaxVersion })
+        foreach (var version in new[] { Form.MinVersion, Form.MaxVersion })
         {
             if (!string.IsNullOrWhiteSpace(version) && !Version.TryParse(version.Trim(), out _))
             {
