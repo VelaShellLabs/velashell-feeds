@@ -1,6 +1,6 @@
+using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
 using VelaShell.Feeds.Domain;
 
 namespace VelaShell.Feeds.Infrastructure.Cve;
@@ -35,7 +35,7 @@ public sealed class KevCollector(HttpClient http, ILogger<KevCollector>? logger 
         string json;
         try
         {
-            using HttpResponseMessage response = await http.GetAsync(options.KevUrl, cancellationToken).ConfigureAwait(false);
+            using var response = await http.GetAsync(options.KevUrl, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 logger?.LogWarning("KEV 目录返回 {Status},本轮跳过。", (int)response.StatusCode);
@@ -74,13 +74,13 @@ public sealed class KevCollector(HttpClient http, ILogger<KevCollector>? logger 
         using (document)
         {
             if (document.RootElement.ValueKind != JsonValueKind.Object ||
-                !document.RootElement.TryGetProperty("vulnerabilities", out JsonElement list) ||
+                !document.RootElement.TryGetProperty("vulnerabilities", out var list) ||
                 list.ValueKind != JsonValueKind.Array)
             {
                 return [];
             }
             List<CveAdvisory> result = [];
-            foreach (JsonElement element in list.EnumerateArray())
+            foreach (var element in list.EnumerateArray())
             {
                 if (ParseOne(element) is { } advisory)
                 {
@@ -97,19 +97,19 @@ public sealed class KevCollector(HttpClient http, ILogger<KevCollector>? logger 
         {
             return null;
         }
-        string? cveId = ReadString(element, "cveID");
+        var cveId = ReadString(element, "cveID");
         if (string.IsNullOrWhiteSpace(cveId))
         {
             return null;
         }
-        string? vendor = ReadString(element, "vendorProject");
-        string? product = ReadString(element, "product");
-        string? name = ReadString(element, "vulnerabilityName");
+        var vendor = ReadString(element, "vendorProject");
+        var product = ReadString(element, "product");
+        var name = ReadString(element, "vulnerabilityName");
 
         // 标题拼成「组件 — 一句话」:用户在 340px 宽的列表里先看到的是组件名,
         // 那才是他判断"这关不关我事"的依据,而不是 CVE 编号。
-        string component = string.Join(' ', new[] { vendor, product }.Where(part => !string.IsNullOrWhiteSpace(part))).Trim();
-        string title = string.IsNullOrWhiteSpace(component)
+        var component = string.Join(' ', new[] { vendor, product }.Where(part => !string.IsNullOrWhiteSpace(part))).Trim();
+        var title = string.IsNullOrWhiteSpace(component)
                            ? $"{cveId}: {name ?? "已知被利用的漏洞"}"
                            : $"{component} — {name ?? cveId}";
         return new()
@@ -127,7 +127,7 @@ public sealed class KevCollector(HttpClient http, ILogger<KevCollector>? logger 
     }
 
     private static string? ReadString(JsonElement element, string property) =>
-        element.TryGetProperty(property, out JsonElement value) && value.ValueKind == JsonValueKind.String
+        element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()?.Trim()
             : null;
 
@@ -135,7 +135,7 @@ public sealed class KevCollector(HttpClient http, ILogger<KevCollector>? logger 
     private static DateTime? ReadDate(JsonElement element, string property) =>
         ReadString(element, property) is { Length: > 0 } text &&
         DateTime.TryParse(text, CultureInfo.InvariantCulture,
-                          DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out DateTime parsed)
+                          DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var parsed)
             ? parsed
             : null;
 }

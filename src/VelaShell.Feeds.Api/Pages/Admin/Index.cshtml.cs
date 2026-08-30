@@ -30,7 +30,7 @@ public sealed class IndexModel(FeedsDbContext db, FeedCacheService feed) : PageM
     /// <summary>载入统计。</summary>
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
-        DateTime now = DateTime.UtcNow;
+        var now = DateTime.UtcNow;
         LiveEntries = await db.Entries.CountDocumentsAsync(
             Builders<FeedEntry>.Filter.And(
                 Builders<FeedEntry>.Filter.Eq(entry => entry.Status, EntryStatus.Published),
@@ -47,7 +47,7 @@ public sealed class IndexModel(FeedsDbContext db, FeedCacheService feed) : PageM
         KnownExploited = await db.Advisories.CountDocumentsAsync(
             Builders<CveAdvisory>.Filter.Eq(item => item.KnownExploited, true), cancellationToken: cancellationToken);
 
-        CachedFeed current = await feed.GetAsync(cancellationToken);
+        var current = await feed.GetAsync(cancellationToken);
         FeedItems = current.ItemCount;
         RenderedAt = current.RenderedAt;
     }

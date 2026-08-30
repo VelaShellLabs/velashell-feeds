@@ -1,9 +1,7 @@
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
 using Microsoft.Extensions.Options;
+using MongoDB.Driver;
+using System.Security.Cryptography;
+using System.Text.Json;
 using VelaShell.Feeds.Domain;
 using VelaShell.Feeds.Infrastructure;
 
@@ -48,7 +46,7 @@ public sealed class FeedCacheService(
     /// </summary>
     public async Task<CachedFeed> GetAsync(CancellationToken cancellationToken = default)
     {
-        CachedFeed? snapshot = _cached;
+        var snapshot = _cached;
         if (snapshot is not null && snapshot.RenderedAt + Ttl > DateTime.UtcNow)
         {
             return snapshot;
@@ -69,7 +67,7 @@ public sealed class FeedCacheService(
             }
             try
             {
-                CachedFeed rendered = await RenderAsync(cancellationToken).ConfigureAwait(false);
+                var rendered = await RenderAsync(cancellationToken).ConfigureAwait(false);
                 _cached = rendered;
                 _nextAttempt = DateTime.MinValue;
                 return rendered;
@@ -91,7 +89,7 @@ public sealed class FeedCacheService(
     /// <summary>一份空但合法的 feed。客户端拿到它等于"这次没有新消息"。</summary>
     private static CachedFeed Empty()
     {
-        byte[] payload = JsonSerializer.SerializeToUtf8Bytes(new FeedDocument { Items = [] }, Json);
+        var payload = JsonSerializer.SerializeToUtf8Bytes(new FeedDocument { Items = [] }, Json);
         return new(payload, MakeETag(payload), DateTime.UtcNow, 0);
     }
 
@@ -100,19 +98,19 @@ public sealed class FeedCacheService(
 
     private async Task<CachedFeed> RenderAsync(CancellationToken cancellationToken)
     {
-        DateTime now = DateTime.UtcNow;
-        FeedCompositionOptions composition = options.CurrentValue;
+        var now = DateTime.UtcNow;
+        var composition = options.CurrentValue;
 
         // 只捞可能进 feed 的:已发布、且未过期。草稿与归档不该出现在这条路径上。
-        List<FeedEntry> entries = await db.Entries
+        var entries = await db.Entries
             .Find(Builders<FeedEntry>.Filter.Eq(entry => entry.Status, EntryStatus.Published))
             .SortByDescending(entry => entry.PublishedAt)
             .Limit(composition.MaxItems * 2)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         // CVE 侧同样先在库里筛掉过期与被屏蔽的,别把几千条拉进内存再过滤。
-        DateTime cutoff = now.AddDays(-composition.CveLifetimeDays);
-        List<CveAdvisory> advisories = await db.Advisories
+        var cutoff = now.AddDays(-composition.CveLifetimeDays);
+        var advisories = await db.Advisories
             .Find(Builders<CveAdvisory>.Filter.And(
                 Builders<CveAdvisory>.Filter.Eq(item => item.IsSuppressed, false),
                 Builders<CveAdvisory>.Filter.Gt(item => item.PublishedAt, cutoff)))
@@ -120,8 +118,8 @@ public sealed class FeedCacheService(
             .Limit(composition.MaxCveItems * 5)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
-        FeedDocument document = FeedComposer.Compose(entries, advisories, composition, now);
-        byte[] payload = JsonSerializer.SerializeToUtf8Bytes(document, Json);
+        var document = FeedComposer.Compose(entries, advisories, composition, now);
+        var payload = JsonSerializer.SerializeToUtf8Bytes(document, Json);
         return new(payload, MakeETag(payload), now, document.Items.Count);
     }
 

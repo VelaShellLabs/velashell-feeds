@@ -1,6 +1,6 @@
+using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
 using VelaShell.Feeds.Domain;
 
 namespace VelaShell.Feeds.Infrastructure.Cve;
@@ -36,11 +36,11 @@ public sealed class NvdCollector(HttpClient http, ILogger<NvdCollector>? logger 
         {
             return [];
         }
-        TimeSpan throttle = string.IsNullOrWhiteSpace(options.NvdApiKey) ? ThrottleNoKey : ThrottleWithKey;
-        DateTime since = DateTime.UtcNow.AddDays(-Math.Max(1, options.NvdLookbackDays));
+        var throttle = string.IsNullOrWhiteSpace(options.NvdApiKey) ? ThrottleNoKey : ThrottleWithKey;
+        var since = DateTime.UtcNow.AddDays(-Math.Max(1, options.NvdLookbackDays));
         Dictionary<string, CveAdvisory> collected = new(StringComparer.OrdinalIgnoreCase);
         var first = true;
-        foreach (string keyword in options.NvdKeywords.Where(word => !string.IsNullOrWhiteSpace(word)))
+        foreach (var keyword in options.NvdKeywords.Where(word => !string.IsNullOrWhiteSpace(word)))
         {
             if (cancellationToken.IsCancellationRequested)
             {
@@ -51,7 +51,7 @@ public sealed class NvdCollector(HttpClient http, ILogger<NvdCollector>? logger 
                 await Task.Delay(throttle, cancellationToken).ConfigureAwait(false);
             }
             first = false;
-            foreach (CveAdvisory advisory in await QueryAsync(options, keyword, since, cancellationToken).ConfigureAwait(false))
+            foreach (var advisory in await QueryAsync(options, keyword, since, cancellationToken).ConfigureAwait(false))
             {
                 // 一个 CVE 可能同时命中多个关键词(如 openssl 与 curl),按编号收敛。
                 collected.TryAdd(advisory.CveId, advisory);
@@ -75,13 +75,13 @@ public sealed class NvdCollector(HttpClient http, ILogger<NvdCollector>? logger 
             {
                 request.Headers.Add("apiKey", options.NvdApiKey);
             }
-            using HttpResponseMessage response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            using var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 logger?.LogWarning("NVD 查询「{Keyword}」返回 {Status},跳过该关键词。", keyword, (int)response.StatusCode);
                 return [];
             }
-            string json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             return Parse(json, options.NvdMinCvss);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
@@ -110,16 +110,16 @@ public sealed class NvdCollector(HttpClient http, ILogger<NvdCollector>? logger 
         using (document)
         {
             if (document.RootElement.ValueKind != JsonValueKind.Object ||
-                !document.RootElement.TryGetProperty("vulnerabilities", out JsonElement list) ||
+                !document.RootElement.TryGetProperty("vulnerabilities", out var list) ||
                 list.ValueKind != JsonValueKind.Array)
             {
                 return [];
             }
             List<CveAdvisory> result = [];
-            foreach (JsonElement wrapper in list.EnumerateArray())
+            foreach (var wrapper in list.EnumerateArray())
             {
                 if (wrapper.ValueKind != JsonValueKind.Object ||
-                    !wrapper.TryGetProperty("cve", out JsonElement cve) ||
+                    !wrapper.TryGetProperty("cve", out var cve) ||
                     ParseOne(cve, minCvss) is not { } advisory)
                 {
                     continue;
@@ -132,12 +132,12 @@ public sealed class NvdCollector(HttpClient http, ILogger<NvdCollector>? logger 
 
     private static CveAdvisory? ParseOne(JsonElement cve, double minCvss)
     {
-        string? id = ReadString(cve, "id");
+        var id = ReadString(cve, "id");
         if (string.IsNullOrWhiteSpace(id))
         {
             return null;
         }
-        double? score = ReadCvss(cve);
+        var score = ReadCvss(cve);
 
         // 分数读不出来时一并跳过:没有分数就没法判断轻重,而这条路径的存在意义
         // 正是"只推够重的"。真正紧急的漏洞会从 KEV 那条路进来,不会漏。
@@ -145,7 +145,7 @@ public sealed class NvdCollector(HttpClient http, ILogger<NvdCollector>? logger 
         {
             return null;
         }
-        string? description = ReadDescription(cve);
+        var description = ReadDescription(cve);
         return new()
         {
             Id = $"{CveSources.Nvd}:{id}",
@@ -163,22 +163,22 @@ public sealed class NvdCollector(HttpClient http, ILogger<NvdCollector>? logger 
     /// <summary>取 CVSS 基础分,依次尝试 v3.1 → v3.0 → v2。</summary>
     private static double? ReadCvss(JsonElement cve)
     {
-        if (!cve.TryGetProperty("metrics", out JsonElement metrics) || metrics.ValueKind != JsonValueKind.Object)
+        if (!cve.TryGetProperty("metrics", out var metrics) || metrics.ValueKind != JsonValueKind.Object)
         {
             return null;
         }
-        foreach (string key in (string[])["cvssMetricV31", "cvssMetricV30", "cvssMetricV2"])
+        foreach (var key in (string[])["cvssMetricV31", "cvssMetricV30", "cvssMetricV2"])
         {
-            if (!metrics.TryGetProperty(key, out JsonElement entries) || entries.ValueKind != JsonValueKind.Array)
+            if (!metrics.TryGetProperty(key, out var entries) || entries.ValueKind != JsonValueKind.Array)
             {
                 continue;
             }
-            foreach (JsonElement entry in entries.EnumerateArray())
+            foreach (var entry in entries.EnumerateArray())
             {
                 if (entry.ValueKind == JsonValueKind.Object &&
-                    entry.TryGetProperty("cvssData", out JsonElement data) &&
+                    entry.TryGetProperty("cvssData", out var data) &&
                     data.ValueKind == JsonValueKind.Object &&
-                    data.TryGetProperty("baseScore", out JsonElement score) &&
+                    data.TryGetProperty("baseScore", out var score) &&
                     score.ValueKind == JsonValueKind.Number)
                 {
                     return score.GetDouble();
@@ -191,18 +191,18 @@ public sealed class NvdCollector(HttpClient http, ILogger<NvdCollector>? logger 
     /// <summary>取英文描述;没有英文时退回第一条。</summary>
     private static string? ReadDescription(JsonElement cve)
     {
-        if (!cve.TryGetProperty("descriptions", out JsonElement list) || list.ValueKind != JsonValueKind.Array)
+        if (!cve.TryGetProperty("descriptions", out var list) || list.ValueKind != JsonValueKind.Array)
         {
             return null;
         }
         string? fallback = null;
-        foreach (JsonElement entry in list.EnumerateArray())
+        foreach (var entry in list.EnumerateArray())
         {
             if (entry.ValueKind != JsonValueKind.Object)
             {
                 continue;
             }
-            string? value = ReadString(entry, "value");
+            var value = ReadString(entry, "value");
             if (string.IsNullOrWhiteSpace(value))
             {
                 continue;
@@ -220,14 +220,14 @@ public sealed class NvdCollector(HttpClient http, ILogger<NvdCollector>? logger 
     private static string Iso(DateTime utc) => utc.ToString("yyyy-MM-ddTHH:mm:ss.fff", CultureInfo.InvariantCulture);
 
     private static string? ReadString(JsonElement element, string property) =>
-        element.TryGetProperty(property, out JsonElement value) && value.ValueKind == JsonValueKind.String
+        element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()?.Trim()
             : null;
 
     private static DateTime? ReadDate(JsonElement element, string property) =>
         ReadString(element, property) is { Length: > 0 } text &&
         DateTime.TryParse(text, CultureInfo.InvariantCulture,
-                          DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out DateTime parsed)
+                          DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var parsed)
             ? parsed
             : null;
 }

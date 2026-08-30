@@ -31,10 +31,10 @@ public class CollectorTests
         }
         """;
 
-        IReadOnlyList<CveAdvisory> items = KevCollector.Parse(json);
+        var items = KevCollector.Parse(json);
 
         Assert.HasCount(1, items);
-        CveAdvisory item = items[0];
+        var item = items[0];
         Assert.AreEqual("CVE-2026-1234", item.CveId);
         Assert.AreEqual($"{CveSources.Kev}:CVE-2026-1234", item.Id);
         Assert.IsTrue(item.KnownExploited, "进了 KEV 目录就意味着已观察到在野利用。");
@@ -72,7 +72,7 @@ public class CollectorTests
             { "cveID": "CVE-2026-0001", "vendorProject": "Y", "product": "Z", "dateAdded": "2026-08-02" } ] }
         """;
 
-        IReadOnlyList<CveAdvisory> items = KevCollector.Parse(json);
+        var items = KevCollector.Parse(json);
 
         Assert.HasCount(1, items);
         Assert.AreEqual("CVE-2026-0001", items[0].CveId);
@@ -111,7 +111,7 @@ public class CollectorTests
         }
         """;
 
-        IReadOnlyList<CveAdvisory> items = NvdCollector.Parse(json, minCvss: 7.0);
+        var items = NvdCollector.Parse(json, minCvss: 7.0);
 
         Assert.HasCount(1, items);
         Assert.AreEqual(9.1, items[0].CvssScore);

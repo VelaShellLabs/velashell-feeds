@@ -1,21 +1,23 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
+using VelaShell.Feeds.Api;
 using VelaShell.Feeds.Api.Options;
 using VelaShell.Feeds.Api.Services;
 using VelaShell.Feeds.Domain;
 using VelaShell.Feeds.Infrastructure;
 using VelaShell.Feeds.Infrastructure.Cve;
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 // ---- 配置 --------------------------------------------------------------------
 builder.Services.Configure<FeedsAuthOptions>(builder.Configuration.GetSection(FeedsAuthOptions.SectionName));
 builder.Services.Configure<CveOptions>(builder.Configuration.GetSection(CveOptions.SectionName));
 builder.Services.Configure<FeedCompositionOptions>(builder.Configuration.GetSection("Feed"));
-FeedsAuthOptions auth = builder.Configuration.GetSection(FeedsAuthOptions.SectionName).Get<FeedsAuthOptions>() ?? new();
+var auth = builder.Configuration.GetSection(FeedsAuthOptions.SectionName).Get<FeedsAuthOptions>() ?? new();
 
 // ---- 数据 --------------------------------------------------------------------
 builder.Services.AddSingleton(_ =>
@@ -55,17 +57,39 @@ builder.Services.AddAuthentication(options =>
        .AddOpenIdConnect(options =>
        {
            options.Authority = auth.Issuer.TrimEnd('/');
-           // 浏览器看到的地址与本服务能访问到的地址不同时(容器内),单独指 metadata。
-           // 注意:metadata 里的 token 端点仍是对外地址,所以本服务也必须访问得到它。
+
+           // 浏览器看到的地址(Issuer)与本服务能访问到的地址(Authority)不同时(容器内),
+           // 单独指 metadata。注意:metadata 里的 token 端点仍是对外地址,本服务也要访问得到。
+           var metadataIsInternalHttp = false;
            if (!string.IsNullOrWhiteSpace(auth.Authority) && auth.Authority != auth.Issuer)
            {
                options.MetadataAddress = $"{auth.Authority.TrimEnd('/')}/.well-known/openid-configuration";
+               metadataIsInternalHttp = auth.Authority.StartsWith("http://", StringComparison.OrdinalIgnoreCase);
+           }
+
+           // ⚠️ RequireHttpsMetadata 校验的是 **MetadataAddress 的协议**,不是 Issuer 的。
+           // 内部地址走容器网络(如 http://identity:8080)时它必然是 http,此时若还要求 https,
+           // 中间件会直接抛 IDX20108,表现为**一访问 /admin 就 500**,而 /healthz 照常。
+           //
+           // 对这条链路放行是安全的:它不出宿主(在 velashell-net 内),而**令牌的 issuer 校验
+           // 仍然钉在 https 的对外地址上**(见下面的 ValidIssuers)—— 真正防伪造的是那一道,
+           // 不是这一道。对外地址仍受 RequireHttpsMetadata 约束。
+           options.RequireHttpsMetadata = auth.RequireHttpsMetadata && !metadataIsInternalHttp;
+
+           // 对外 HTTPS + 内部明文直连时,光换 MetadataAddress 是不够的:还要补转发头让
+           // 认证服务放行,并把它返回的端点地址改写回内部形态。两件事缺一不可 ——
+           // 详见 InternalAuthorityDocumentRetriever 的类型注释(那里记了两次撞墙的报错长什么样)。
+           if (metadataIsInternalHttp)
+           {
+               options.ConfigurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
+                   options.MetadataAddress!,
+                   new OpenIdConnectConfigurationRetriever(),
+                   new InternalAuthorityDocumentRetriever(auth.Issuer, auth.Authority));
            }
            options.ClientId = auth.ClientId;
            options.ClientSecret = string.IsNullOrWhiteSpace(auth.ClientSecret) ? null : auth.ClientSecret;
            options.ResponseType = "code";
            options.UsePkce = true;
-           options.RequireHttpsMetadata = auth.RequireHttpsMetadata;
            options.SaveTokens = false; // 管理台不调别的 API,存着令牌只是多一份可被偷的东西
            options.GetClaimsFromUserInfoEndpoint = true;
            options.Scope.Clear();
@@ -91,7 +115,7 @@ builder.Services.AddAuthorizationBuilder()
            {
                // 主体的取法要与别处完全一致,两处分叉的话换一次声明映射就会出现
                // "这里认得出你、那里认不出你"。
-               string? subject = context.User.FindFirst("sub")?.Value
+               var subject = context.User.FindFirst("sub")?.Value
                                  ?? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                return context.User.Identity?.IsAuthenticated == true && auth.IsAdmin(subject);
            }));
@@ -104,10 +128,10 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AllowAnonymousToPage("/Admin/Denied");
 });
 
-WebApplication app = builder.Build();
+var app = builder.Build();
 
 // 启动即建索引;库还没起来时不该让整个服务起不来,记一条日志继续。
-using (IServiceScope scope = app.Services.CreateScope())
+using (var scope = app.Services.CreateScope())
 {
     try
     {
@@ -132,7 +156,7 @@ app.UseAuthorization();
 // VelaShell 客户端拉的就是这个。它是匿名的:要求认证等于要求每台客户端都有账号。
 app.MapGet("/feed.json", async (FeedCacheService feed, HttpContext http, CancellationToken cancel) =>
 {
-    CachedFeed current = await feed.GetAsync(cancel);
+    var current = await feed.GetAsync(cancel);
     http.Response.Headers.ETag = current.ETag;
     // 客户端不发条件请求,但中间的 CDN / 反代会用;5 分钟与渲染缓存对齐。
     http.Response.Headers.CacheControl = "public, max-age=300";

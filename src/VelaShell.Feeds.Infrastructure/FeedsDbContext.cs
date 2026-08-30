@@ -27,7 +27,7 @@ public sealed class FeedsDbContext
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
         RegisterConventions();
         var url = new MongoUrl(connectionString);
-        MongoClientSettings settings = MongoClientSettings.FromUrl(url);
+        var settings = MongoClientSettings.FromUrl(url);
 
         // 驱动默认要等 30 秒才认定"选不出服务器"。而 /feed.json 是**公开端点**:
         // 库一抖,每个客户端请求都挂满半分钟,连接就堆起来了。5 秒足够区分

@@ -84,8 +84,8 @@ dotnet test  VelaShell.Feeds.slnx
 
 ```yaml
 # 新的 API 资源(scope)。索引接着已有的往后排。
-- Identity__Resources__1__Name=velashell-feeds
-- Identity__Resources__1__Resources__0=velashell-feeds
+- Identity__Scopes__1__Name=velashell-feeds
+- Identity__Scopes__1__Resources__0=velashell-feeds
 # 资讯服务的管理台客户端。
 - Identity__Clients__1__ClientId=velashell-feeds-admin
 - Identity__Clients__1__DisplayName=VelaShell 资讯服务
