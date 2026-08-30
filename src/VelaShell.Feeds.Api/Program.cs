@@ -2,7 +2,10 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+using VelaShell.Feeds.Api;
 using VelaShell.Feeds.Api.Options;
 using VelaShell.Feeds.Api.Services;
 using VelaShell.Feeds.Domain;
@@ -73,6 +76,17 @@ builder.Services.AddAuthentication(options =>
            // 仍然钉在 https 的对外地址上**(见下面的 ValidIssuers)—— 真正防伪造的是那一道,
            // 不是这一道。对外地址仍受 RequireHttpsMetadata 约束。
            options.RequireHttpsMetadata = auth.RequireHttpsMetadata && !metadataIsInternalHttp;
+
+           // 对外 HTTPS + 内部明文直连时,光换 MetadataAddress 是不够的:还要补转发头让
+           // 认证服务放行,并把它返回的端点地址改写回内部形态。两件事缺一不可 ——
+           // 详见 InternalAuthorityDocumentRetriever 的类型注释(那里记了两次撞墙的报错长什么样)。
+           if (metadataIsInternalHttp)
+           {
+               options.ConfigurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
+                   options.MetadataAddress!,
+                   new OpenIdConnectConfigurationRetriever(),
+                   new InternalAuthorityDocumentRetriever(auth.Issuer, auth.Authority));
+           }
            options.ClientId = auth.ClientId;
            options.ClientSecret = string.IsNullOrWhiteSpace(auth.ClientSecret) ? null : auth.ClientSecret;
            options.ResponseType = "code";
