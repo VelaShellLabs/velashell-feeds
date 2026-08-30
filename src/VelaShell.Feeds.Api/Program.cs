@@ -55,17 +55,28 @@ builder.Services.AddAuthentication(options =>
        .AddOpenIdConnect(options =>
        {
            options.Authority = auth.Issuer.TrimEnd('/');
-           // 浏览器看到的地址与本服务能访问到的地址不同时(容器内),单独指 metadata。
-           // 注意:metadata 里的 token 端点仍是对外地址,所以本服务也必须访问得到它。
+
+           // 浏览器看到的地址(Issuer)与本服务能访问到的地址(Authority)不同时(容器内),
+           // 单独指 metadata。注意:metadata 里的 token 端点仍是对外地址,本服务也要访问得到。
+           var metadataIsInternalHttp = false;
            if (!string.IsNullOrWhiteSpace(auth.Authority) && auth.Authority != auth.Issuer)
            {
                options.MetadataAddress = $"{auth.Authority.TrimEnd('/')}/.well-known/openid-configuration";
+               metadataIsInternalHttp = auth.Authority.StartsWith("http://", StringComparison.OrdinalIgnoreCase);
            }
+
+           // ⚠️ RequireHttpsMetadata 校验的是 **MetadataAddress 的协议**,不是 Issuer 的。
+           // 内部地址走容器网络(如 http://identity:8080)时它必然是 http,此时若还要求 https,
+           // 中间件会直接抛 IDX20108,表现为**一访问 /admin 就 500**,而 /healthz 照常。
+           //
+           // 对这条链路放行是安全的:它不出宿主(在 velashell-net 内),而**令牌的 issuer 校验
+           // 仍然钉在 https 的对外地址上**(见下面的 ValidIssuers)—— 真正防伪造的是那一道,
+           // 不是这一道。对外地址仍受 RequireHttpsMetadata 约束。
+           options.RequireHttpsMetadata = auth.RequireHttpsMetadata && !metadataIsInternalHttp;
            options.ClientId = auth.ClientId;
            options.ClientSecret = string.IsNullOrWhiteSpace(auth.ClientSecret) ? null : auth.ClientSecret;
            options.ResponseType = "code";
            options.UsePkce = true;
-           options.RequireHttpsMetadata = auth.RequireHttpsMetadata;
            options.SaveTokens = false; // 管理台不调别的 API,存着令牌只是多一份可被偷的东西
            options.GetClaimsFromUserInfoEndpoint = true;
            options.Scope.Clear();
