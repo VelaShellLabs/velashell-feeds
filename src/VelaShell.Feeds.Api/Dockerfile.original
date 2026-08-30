@@ -1,0 +1,18 @@
+# 构建
+FROM mcr.microsoft.com/dotnet/nightly/sdk:11.0-preview AS build
+WORKDIR /src
+COPY global.json Directory.Build.props Directory.Packages.props ./
+COPY src/VelaShell.Feeds.Domain/*.csproj src/VelaShell.Feeds.Domain/
+COPY src/VelaShell.Feeds.Infrastructure/*.csproj src/VelaShell.Feeds.Infrastructure/
+COPY src/VelaShell.Feeds.Api/*.csproj src/VelaShell.Feeds.Api/
+RUN dotnet restore src/VelaShell.Feeds.Api/VelaShell.Feeds.Api.csproj
+COPY . .
+RUN dotnet publish src/VelaShell.Feeds.Api/VelaShell.Feeds.Api.csproj -c Release -o /app --no-restore
+
+# 运行
+FROM mcr.microsoft.com/dotnet/nightly/aspnet:11.0-preview AS runtime
+WORKDIR /app
+COPY --from=build /app .
+# 不用 root 跑:这个服务对外暴露一个公开端点,没有任何理由让它有写系统的能力。
+USER $APP_UID
+ENTRYPOINT ["dotnet", "VelaShell.Feeds.Api.dll"]

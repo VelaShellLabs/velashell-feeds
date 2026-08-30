@@ -1,0 +1,23 @@
+@page "/admin/preview"
+@model VelaShell.Feeds.Api.Pages.Admin.PreviewModel
+@{
+    ViewData["Title"] = "feed 预览";
+}
+
+<h1>feed 预览</h1>
+<p class="sub">
+    这就是 <code>/feed.json</code> 当前会返回的内容（下发时是压缩的，这里缩进只为好读）。
+    共 @Model.ItemCount 条，ETag @Model.ETag，渲染于 @Model.RenderedAt.ToString("yyyy-MM-dd HH:mm:ss") UTC。
+</p>
+
+<form method="post" asp-page-handler="Refresh" class="inline">
+    <button type="submit">重新渲染</button>
+</form>
+<a class="btn" href="/feed.json" target="_blank" rel="noreferrer">在新标签打开原始 JSON</a>
+
+<p class="hint" style="margin-top:14px">
+    没看到刚发布的条目？依次检查：状态是不是 Published、发布时间是不是还没到、
+    下线时间是不是已经过了、定向条件是不是把目标用户排除了。
+</p>
+
+<pre>@Model.Json</pre>

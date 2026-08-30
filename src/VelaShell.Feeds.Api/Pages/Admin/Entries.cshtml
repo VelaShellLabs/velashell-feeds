@@ -1,0 +1,89 @@
+@page "/admin/entries"
+@model VelaShell.Feeds.Api.Pages.Admin.EntriesModel
+@{
+    ViewData["Title"] = "公告与广告";
+    DateTime now = DateTime.UtcNow;
+}
+
+<h1>公告与广告</h1>
+<p class="sub">
+    管理员手工投放的内容。采集来的漏洞公告不在这里，见「漏洞公告」。
+    <a class="btn" href="/admin/entries/edit">新建</a>
+</p>
+
+@if (Model.Items.Count == 0)
+{
+    <p class="sub">还没有任何条目。</p>
+}
+else
+{
+    <table>
+        <thead>
+        <tr>
+            <th style="width:44%">标题</th>
+            <th>种类</th>
+            <th>状态</th>
+            <th>投放期（UTC）</th>
+            <th style="width:170px">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (FeedEntry entry in Model.Items)
+        {
+            <tr>
+                <td>
+                    <div class="t">@entry.Title</div>
+                    <div class="b">@entry.Id</div>
+                </td>
+                <td>
+                    <span class="tag @entry.Kind">@entry.Kind</span>
+                    @if (entry.Severity != FeedSeverities.Info)
+                    {
+                        <span class="tag security">@entry.Severity</span>
+                    }
+                </td>
+                <td>
+                    <span class="tag @entry.Status.ToString().ToLowerInvariant()">@entry.Status</span>
+                    @if (entry.Status == EntryStatus.Published && !entry.IsLive(now))
+                    {
+                        <div class="b">不在投放期内</div>
+                    }
+                </td>
+                <td class="b">
+                    @entry.PublishedAt.ToString("yyyy-MM-dd HH:mm")
+                    @if (entry.ExpiresAt is { } expires)
+                    {
+                        <text> → @expires.ToString("yyyy-MM-dd HH:mm")</text>
+                    }
+                    else
+                    {
+                        <text> → 不过期</text>
+                    }
+                </td>
+                <td>
+                    <a class="btn" href="/admin/entries/edit?id=@Uri.EscapeDataString(entry.Id)">编辑</a>
+                    @if (entry.Status != EntryStatus.Published)
+                    {
+                        <form class="inline" method="post" asp-page-handler="Publish">
+                            <input type="hidden" name="id" value="@entry.Id" />
+                            <button type="submit" class="primary">发布</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form class="inline" method="post" asp-page-handler="Archive">
+                            <input type="hidden" name="id" value="@entry.Id" />
+                            <button type="submit">下线</button>
+                        </form>
+                    }
+                    <form class="inline" method="post" asp-page-handler="Delete"
+                          onsubmit="return confirm('删除后不可恢复，确定？');">
+                        <input type="hidden" name="id" value="@entry.Id" />
+                        <button type="submit" class="danger">删除</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

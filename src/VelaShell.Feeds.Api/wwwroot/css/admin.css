@@ -1,0 +1,138 @@
+/* 管理台样式。刻意保持朴素:这个后台只有管理员会看到,
+   把时间花在引一套组件库上,不如把投放规则说清楚。 */
+:root {
+    color-scheme: light dark;
+    --bg: #0d1117;
+    --surface: #111620;
+    --border: #253345;
+    --text: #e0e6ed;
+    --muted: #8b9bb4;
+    --accent: #00d4aa;
+    --warn: #fdcb6e;
+    --danger: #ff6b6b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.6 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 20px;
+    height: 52px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+nav { display: flex; gap: 4px; flex: 1; }
+nav a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+}
+nav a:hover { background: rgba(255, 255, 255, .06); color: var(--text); }
+nav a.active { color: var(--accent); background: rgba(0, 212, 170, .12); }
+
+.who { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+.who form { margin: 0; }
+
+main { max-width: 1080px; margin: 0 auto; padding: 24px 20px 60px; }
+footer { max-width: 1080px; margin: 0 auto; padding: 0 20px 30px; color: var(--muted); font-size: 12px; }
+
+h1 { font-size: 20px; margin: 0 0 4px; }
+h2 { font-size: 15px; margin: 28px 0 10px; }
+.sub { color: var(--muted); margin: 0 0 20px; font-size: 13px; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+}
+.card .n { font-size: 26px; font-weight: 600; }
+.card .l { color: var(--muted); font-size: 12px; }
+
+table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; font-size: 12px; }
+td .t { font-weight: 500; }
+td .b { color: var(--muted); font-size: 12px; }
+
+.tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-size: 11px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+}
+.tag.promotion { border-color: var(--accent); color: var(--accent); }
+.tag.security { border-color: var(--warn); color: var(--warn); }
+.tag.published { border-color: var(--accent); color: var(--accent); }
+.tag.draft { border-color: var(--muted); }
+.tag.archived { border-color: var(--border); color: var(--border); }
+.tag.kev { border-color: var(--danger); color: var(--danger); }
+
+form.inline { display: inline; margin: 0; }
+
+label { display: block; margin: 12px 0 4px; font-size: 13px; color: var(--muted); }
+input[type=text], input[type=url], input[type=number], input[type=datetime-local], select, textarea {
+    width: 100%;
+    padding: 7px 9px;
+    background: #151b26;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font: inherit;
+}
+textarea { min-height: 84px; resize: vertical; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+button, .btn {
+    padding: 7px 14px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    font: inherit;
+    text-decoration: none;
+    display: inline-block;
+}
+button:hover, .btn:hover { background: rgba(255, 255, 255, .06); }
+button.primary { border-color: var(--accent); color: var(--accent); }
+button.danger { border-color: var(--danger); color: var(--danger); }
+button.link { border: 0; padding: 0; color: var(--muted); text-decoration: underline; }
+.actions { margin-top: 20px; display: flex; gap: 10px; }
+
+.notice {
+    border: 1px solid var(--warn);
+    color: var(--warn);
+    background: rgba(253, 203, 110, .08);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 18px;
+    font-size: 13px;
+}
+.hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    overflow: auto;
+    font-size: 12px;
+    max-height: 560px;
+}

@@ -1,0 +1,83 @@
+@page "/admin/advisories"
+@model VelaShell.Feeds.Api.Pages.Admin.AdvisoriesModel
+@{
+    ViewData["Title"] = "漏洞公告";
+}
+
+<h1>漏洞公告</h1>
+<p class="sub">
+    机器采集，不手工创建。<strong>CISA KEV</strong> 收录的是已观察到在野利用的漏洞，整条放行；
+    <strong>NVD</strong> 只按配置的组件关键词 + CVSS 阈值收录。
+    与用户无关的噪音在这里屏蔽 —— 屏蔽只是不进 feed，采集器照抓照存，所以下轮采集不会把它带回来。
+</p>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="notice">@Model.Message</div>
+}
+
+<form method="post" asp-page-handler="Collect" class="inline">
+    <button type="submit">立刻采集一次</button>
+</form>
+<span class="hint">NVD 按限流串行查关键词，可能要几十秒。</span>
+
+@if (Model.Items.Count == 0)
+{
+    <p class="sub">库里还没有公告。点上面的按钮跑一轮，或等后台任务到点。</p>
+}
+else
+{
+    <table>
+        <thead>
+        <tr>
+            <th style="width:46%">标题</th>
+            <th>来源</th>
+            <th>CVSS</th>
+            <th>公布</th>
+            <th style="width:110px">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (CveAdvisory item in Model.Items)
+        {
+            <tr>
+                <td>
+                    <div class="t">
+                        @item.Title
+                        @if (item.IsSuppressed)
+                        {
+                            <span class="tag">已屏蔽</span>
+                        }
+                    </div>
+                    <div class="b">@item.CveId</div>
+                </td>
+                <td>
+                    <span class="tag @(item.KnownExploited ? "kev" : "")">@item.Source</span>
+                    @if (item.KnownExploited)
+                    {
+                        <div class="b">在野被利用</div>
+                    }
+                </td>
+                <td class="b">@(item.CvssScore?.ToString("0.0") ?? "—")</td>
+                <td class="b">@item.PublishedAt.ToString("yyyy-MM-dd")</td>
+                <td>
+                    @if (item.IsSuppressed)
+                    {
+                        <form class="inline" method="post" asp-page-handler="Restore">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button type="submit">恢复</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form class="inline" method="post" asp-page-handler="Suppress">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button type="submit">屏蔽</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

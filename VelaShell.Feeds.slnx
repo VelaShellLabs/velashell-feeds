@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/VelaShell.Feeds.Api/VelaShell.Feeds.Api.csproj" />
+    <Project Path="src/VelaShell.Feeds.Domain/VelaShell.Feeds.Domain.csproj" />
+    <Project Path="src/VelaShell.Feeds.Infrastructure/VelaShell.Feeds.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/VelaShell.Feeds.Tests/VelaShell.Feeds.Tests.csproj" />
+  </Folder>
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
+</Solution>

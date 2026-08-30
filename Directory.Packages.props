@@ -1,0 +1,19 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- MongoDB。与插件市场同一套库,连接串指向同一个副本集(不同数据库)。 -->
+    <PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.24.2-preview.1" />
+    <PackageVersion Include="MongoDB.Driver" Version="3.11.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 管理后台的 OIDC 登录:授权码 + PKCE,与市场前端同一个认证服务。
+         这里是**依赖方**,不发令牌,所以只需要 OpenIdConnect 中间件,不需要 OpenIddict。 -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="MSTest" Version="3.10.4" />
+  </ItemGroup>
+</Project>

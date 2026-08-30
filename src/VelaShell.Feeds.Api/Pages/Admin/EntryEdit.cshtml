@@ -1,0 +1,122 @@
+@page "/admin/entries/edit"
+@model VelaShell.Feeds.Api.Pages.Admin.EntryEditModel
+@{
+    ViewData["Title"] = Model.IsEdit ? "编辑条目" : "新建条目";
+}
+
+<h1>@(Model.IsEdit ? "编辑条目" : "新建条目")</h1>
+<p class="sub">保存后仍是当前状态；要真正下发，把状态设为「Published」。</p>
+
+<form method="post">
+    <div asp-validation-summary="All" class="notice"></div>
+
+    <div class="row">
+        <div>
+            <label>id（客户端的去重与已读状态键）</label>
+            <input type="text" asp-for="Form.Id" readonly="@Model.IsEdit" />
+            <div class="hint">
+                改标题请沿用旧 id，否则客户端会当成新消息重新亮起未读。
+                建议形如 <code>2026-09-promo-01</code>。
+            </div>
+        </div>
+        <div>
+            <label>状态</label>
+            <select asp-for="Form.Status" asp-items="Html.GetEnumSelectList<EntryStatus>()"></select>
+            <div class="hint">Draft 只在管理台可见；Archived 是手工下线。</div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div>
+            <label>种类</label>
+            <select asp-for="Form.Kind">
+                <option value="news">news — 产品资讯 / 公告</option>
+                <option value="promotion">promotion — 运营推广（用户可关）</option>
+                <option value="security">security — 安全资讯</option>
+                <option value="update">update — 版本更新</option>
+            </select>
+            <div class="hint">
+                选 <code>promotion</code> 时，客户端里关掉「接收运营消息」的用户收不到这条。
+            </div>
+        </div>
+        <div>
+            <label>严重程度</label>
+            <select asp-for="Form.Severity">
+                <option value="info">info — 一般</option>
+                <option value="warning">warning — 警示色徽标</option>
+                <option value="critical">critical — 警示色徽标（留给安全公告）</option>
+            </select>
+        </div>
+    </div>
+
+    <label>标题</label>
+    <input type="text" asp-for="Form.Title" />
+
+    <label>正文</label>
+    <textarea asp-for="Form.Body"></textarea>
+    <div class="hint">客户端列表里最多显示两行，超出会省略。</div>
+
+    <h2>去处</h2>
+    <div class="row">
+        <div>
+            <label>动作文案</label>
+            <input type="text" asp-for="Form.LinkLabel" placeholder="了解详情" />
+        </div>
+        <div>
+            <label>站内命令 id（优先于外链）</label>
+            <input type="text" asp-for="Form.CommandId" placeholder="app.settings.about" />
+            <div class="hint">留空即走外链。广告一般不填这个。</div>
+        </div>
+    </div>
+    <label>外链（必须 https）</label>
+    <input type="url" asp-for="Form.Url" placeholder="https://example.com/landing" />
+    <div class="hint">
+        客户端会把主机名显示在动作旁边，让用户点之前就知道去哪。
+        要统计转化，在这个链接上带 UTM 参数 —— 服务端拿不到曝光与点击数据。
+    </div>
+
+    <h2>投放期（UTC）</h2>
+    <div class="row">
+        <div>
+            <label>发布时间</label>
+            <input type="datetime-local" asp-for="Form.PublishedAt" asp-format="{0:yyyy-MM-ddTHH:mm}" />
+            <div class="hint">客户端按它倒序排列。</div>
+        </div>
+        <div>
+            <label>下线时间（留空 = 不过期）</label>
+            <input type="datetime-local" asp-for="Form.ExpiresAt" asp-format="{0:yyyy-MM-ddTHH:mm}" />
+            <div class="hint">到点后客户端自动清掉，不必等下一次拉取。</div>
+        </div>
+    </div>
+
+    <h2>定向（留空 = 不限）</h2>
+    <p class="hint">
+        过滤发生在客户端：条件随条目一起下发，由客户端自己筛。
+        服务端因此拿不到用户的版本、平台与语言 —— 这是有意的。
+    </p>
+    <div class="row">
+        <div>
+            <label>界面语言（逗号分隔）</label>
+            <input type="text" asp-for="Form.Locales" placeholder="zh-Hans, zh-Hant" />
+        </div>
+        <div>
+            <label>平台 RID（逗号分隔）</label>
+            <input type="text" asp-for="Form.Platforms" placeholder="win-x64, osx-arm64" />
+        </div>
+    </div>
+    <div class="row">
+        <div>
+            <label>最低版本（含）</label>
+            <input type="text" asp-for="Form.MinVersion" placeholder="1.2.0" />
+        </div>
+        <div>
+            <label>最高版本（含）</label>
+            <input type="text" asp-for="Form.MaxVersion" placeholder="1.3.9" />
+        </div>
+    </div>
+
+    <div class="actions">
+        <button type="submit" class="primary">保存</button>
+        <a class="btn" href="/admin/entries">返回</a>
+    </div>
+</form>

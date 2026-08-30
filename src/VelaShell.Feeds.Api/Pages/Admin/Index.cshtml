@@ -1,0 +1,71 @@
+@page "/admin"
+@model VelaShell.Feeds.Api.Pages.Admin.IndexModel
+@{
+    ViewData["Title"] = "概览";
+}
+
+<h1>概览</h1>
+<p class="sub">
+    客户端拉的是 <code>/feed.json</code>，默认每 6 小时一次，并在启动时额外拉一次。
+    改完内容后最长 5 分钟生效（渲染缓存），发布操作会立即作废缓存。
+</p>
+
+<div class="cards">
+    <div class="card">
+        <div class="n">@Model.FeedItems</div>
+        <div class="l">当前 feed 条目</div>
+    </div>
+    <div class="card">
+        <div class="n">@Model.LiveEntries</div>
+        <div class="l">投放中的公告 / 广告</div>
+    </div>
+    <div class="card">
+        <div class="n">@Model.DraftEntries</div>
+        <div class="l">草稿</div>
+    </div>
+    <div class="card">
+        <div class="n">@Model.KnownExploited</div>
+        <div class="l">在野被利用（共 @Model.Advisories 条公告）</div>
+    </div>
+</div>
+
+<h2>下一步</h2>
+<p class="sub">
+    <a class="btn" href="/admin/entries/edit">投一条新广告或公告</a>
+    <a class="btn" href="/admin/preview">看看客户端会收到什么</a>
+</p>
+
+<h2>投放前值得知道的几件事</h2>
+<table>
+    <tr>
+        <td class="t">广告用户可以关掉</td>
+        <td class="b">
+            客户端设置里有「接收运营消息」开关，关掉后 <code>promotion</code> 类条目会在客户端被丢弃。
+            到达率不是 100%，这是有意留的开关。公告与安全资讯不受影响。
+        </td>
+    </tr>
+    <tr>
+        <td class="t">定向是在客户端算的</td>
+        <td class="b">
+            语言 / 平台 / 版本区间随条目一起下发，由客户端自己筛。
+            请求里没有版本号、平台、语言或任何设备标识 —— 服务端做不了用户级个性化，也拿不到曝光数据。
+            要看转化，只能在落地页那端统计（给 <code>url</code> 带上 UTM 参数）。
+        </td>
+    </tr>
+    <tr>
+        <td class="t">别拿 critical 发广告</td>
+        <td class="b">
+            <code>critical</code> 在客户端会渲染成警示色徽标。用它发促销，用户下次就不信这个徽标了 ——
+            那正是安全公告要用的信号。
+        </td>
+    </tr>
+    <tr>
+        <td class="t">id 决定"要不要重新打扰用户"</td>
+        <td class="b">
+            客户端见过同一个 <code>id</code> 就跳过，并保住已读状态。改标题请沿用旧 id；
+            确实是新事件才换新 id，那会重新亮起未读。
+        </td>
+    </tr>
+</table>
+
+<p class="hint">feed 上次渲染于 @Model.RenderedAt.ToString("yyyy-MM-dd HH:mm:ss") UTC。</p>

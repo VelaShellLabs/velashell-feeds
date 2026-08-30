@@ -1,0 +1,24 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnablePreviewFeatures>true</EnablePreviewFeatures>
+    <NoWarn>$(NoWarn);SYSLIB5007;NETSDK1057</NoWarn>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <Authors>joesdu</Authors>
+    <Product>VelaShell Feeds</Product>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/joesdu/velashell-feeds</RepositoryUrl>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

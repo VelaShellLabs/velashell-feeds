@@ -1,0 +1,51 @@
+# VelaShell 资讯服务。
+#
+# 这份 compose 只起 feeds 自己:认证服务来自 velashell-identity,MongoDB 复用 velashell-markets 那一套 ——
+# 为几张集合和一个后台再起一套副本集与认证服务,是纯粹的重复。
+#
+# 前置条件:
+#   1. velashell-identity 的认证服务、以及 velashell-markets 的 mongo 已经在跑;
+#   2. identity 里注册了 velashell-feeds 这个 scope 与 velashell-feeds-admin 这个客户端
+#      (velashell-identity 的 compose 里已预置,确认 FEEDS_ORIGIN 与 secret 即可);
+#   3. .env 里填了 ADMIN_SUBJECTS —— 留空的话管理台谁都进不去。
+
+services:
+  feeds:
+    build:
+      context: .
+      dockerfile: src/VelaShell.Feeds.Api/Dockerfile
+    image: velashell-feeds:local
+    container_name: velashell-feeds
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Chongqing
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
+      - ASPNETCORE_HTTP_PORTS=8080
+      # 复用市场的 MongoDB 副本集,但**用自己的数据库** velashell-feeds。
+      # 两套业务的集合混在一个库里,迁移、备份和权限收敛都会立刻变麻烦。
+      - ConnectionStrings__Mongo=mongodb://${MONGO_ROOT_USER:-market}:${MONGO_ROOT_PASSWORD:-change-me-please}@host.docker.internal:27017,host.docker.internal:27018/velashell-feeds?authSource=admin&replicaSet=rs0
+      # issuer 必须是**浏览器能打开**的地址:它同时是令牌里的 iss、discovery 里所有端点的前缀,
+      # 也是点"登录"时跳过去的地方。
+      - Auth__Issuer=${IDENTITY_ISSUER:-http://localhost:7020}
+      # 本服务能访问到的认证服务地址(与上面不同时才填)。
+      # 注意:metadata 里的 token 端点仍是对外地址,所以本服务也必须访问得到它。
+      - Auth__Authority=${IDENTITY_INTERNAL:-}
+      - Auth__ClientId=${FEEDS_CLIENT_ID:-velashell-feeds-admin}
+      - Auth__ClientSecret=${FEEDS_CLIENT_SECRET:-}
+      - Auth__Scope=velashell-feeds
+      - Auth__RequireHttpsMetadata=${REQUIRE_HTTPS:-true}
+      # 管理员白名单。**留空 = 谁都进不去**(不是谁都能进)。
+      # 拿 sub 的办法:用管理员账号登录一次,被拒的页面上会把它显示出来。
+      - Auth__AdminSubjects__0=${ADMIN_SUBJECT_0:-}
+      - Auth__AdminSubjects__1=${ADMIN_SUBJECT_1:-}
+      # 采集
+      - Cve__Enabled=${CVE_ENABLED:-true}
+      - Cve__IntervalHours=${CVE_INTERVAL_HOURS:-6}
+      - Cve__NvdApiKey=${NVD_API_KEY:-}
+      # 反代在前面时要认 X-Forwarded-*,否则 OIDC 回跳会拼出 http:// 的地址。
+      - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+    ports:
+      - "${FEEDS_PORT:-7030}:8080"
+    extra_hosts:
+      # 让容器能访问到宿主上的 mongo 与 identity。
+      - "host.docker.internal:host-gateway"

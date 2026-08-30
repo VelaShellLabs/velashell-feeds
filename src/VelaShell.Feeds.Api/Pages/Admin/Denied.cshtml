@@ -1,0 +1,29 @@
+@page "/admin/denied"
+@model VelaShell.Feeds.Api.Pages.Admin.DeniedModel
+@{
+    ViewData["Title"] = "没有权限";
+}
+
+<h1>没有权限</h1>
+
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <p class="sub">你已经登录，但这个账号不在管理员名单里。</p>
+    <div class="notice">
+        你的身份主体（sub）是：<br />
+        <code>@Model.Subject</code><br /><br />
+        把它加进服务的 <code>Auth:AdminSubjects</code> 配置（compose 里是 <code>ADMIN_SUBJECTS</code>），重启即可。
+    </div>
+    <p class="hint">
+        这个后台只认名单，不认注册。统一认证服务对所有人开放注册，
+        但注册并不会给任何人这里的准入 —— 名单为空时谁都进不去。
+    </p>
+    <form method="post" action="/signout">
+        <button type="submit">换个账号</button>
+    </form>
+}
+else
+{
+    <p class="sub">请先登录。</p>
+    <a class="btn" href="/signin">登录</a>
+}
