@@ -50,8 +50,22 @@ dotnet build VelaShell.Feeds.slnx
 dotnet test  VelaShell.Feeds.slnx
 ```
 
+```powershell
+pwsh ./build/Publish-Image.ps1   # 仓库里没有 Dockerfile,镜像是 SDK 直接出的
+docker compose up -d             # compose 只跑不造,`--build` 没有意义
+```
+
 前置:velashell-identity 的认证服务与 velashell-markets 的 MongoDB 已经在跑 —— 本服务复用它们,
 自己不起数据库也不发令牌。完整说明见 [README.md](README.md)。
+
+改了代码不重跑发布脚本的话,`docker compose up -d` 起的还是旧镜像。
+镜像的一切(名字、标签、基础镜像、非 root 用户、暴露端口)只在
+`src/VelaShell.Feeds.Api/VelaShell.Feeds.Api.csproj` 的「容器」段里定义;
+`LocalRegistry` 留空会把镜像发去 WSL 的容器存储,`ContainerUser` 不写则镜像是 root 跑的。
+导出与推 Harbor:`-Archive` / `-Push`,见 `build/Publish-Image.ps1` 的帮助。
+镜像名是 `velashell/feeds` —— 第一段是 Harbor 上的项目名(`harbor.easilynet.top/velashell`),
+认证、市场也在同一个项目里,所以不能改成单段名字。部署机用 `.env` 的 `FEEDS_IMAGE`
+指向远端镜像,不必改 compose。
 
 ### 几条会让你踩坑的硬约束
 

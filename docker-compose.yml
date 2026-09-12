@@ -11,10 +11,16 @@
 
 services:
   feeds:
-    build:
-      context: .
-      dockerfile: src/VelaShell.Feeds.Api/Dockerfile
-    image: velashell-feeds:local
+    # 镜像不再由 compose 构建:`dotnet publish -t:PublishContainer` 产出它,
+    # 见 build/Publish-Image.ps1。没先发布过的话这里会去 Docker Hub 拉一个不存在的镜像。
+    #
+    # 默认值是**本机发布出来的那个名字**。第一段 velashell 是
+    # **Harbor 上的项目名**(harbor.easilynet.top/velashell),认证、市场也都在这个项目里,
+    # 所以第二段要能自说明是谁。
+    # 从 Harbor 拉着跑的机器在 .env 里写:
+    #   FEEDS_IMAGE=harbor.easilynet.top/velashell/feeds:latest
+    # 然后 compose pull 直接取远端镜像,那台机器上不需要源码,也不需要 dotnet。
+    image: ${FEEDS_IMAGE:-velashell/feeds:latest}
     container_name: velashell-feeds
     restart: unless-stopped
     environment:

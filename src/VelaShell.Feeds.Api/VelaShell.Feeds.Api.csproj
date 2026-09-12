@@ -2,13 +2,50 @@
 
   <PropertyGroup>
     <UserSecretsId>a88bd059-c129-4b67-b938-31646e55f0b4</UserSecretsId>
-    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <DockerfileContext>..\..</DockerfileContext>
   </PropertyGroup>
+
+  <!-- ================= 容器 =================
+       镜像由 .NET SDK 直接产出(`dotnet publish -t:PublishContainer`),仓库里不再有 Dockerfile
+       —— 与 velashell-identity / velashell-markets 走同一条路。
+       构建用的是**本机 SDK**,所以不存在"镜像里的 SDK 比 global.json 旧"这类问题;
+       只有运行时那一份要对上,见下面 ContainerBaseImage 的说明。 -->
+  <PropertyGroup Label="容器">
+    <!-- 基础镜像。正式版 aspnet:11.0 里的运行时正是 11.0.0-rc.1.26425.128,与 global.json
+         钉的 SDK 同一版 —— 运行时只能向前滚补丁,基础镜像比编译用的 SDK 旧就会直接
+         "找不到框架"。换基础镜像前先确认这一点。
+         (旧的 Dockerfile 走的是 nightly 仓库的 11.0-preview,那是 .NET 11 还没 GA 时的
+         权宜之计;正式仓库现在有 11.0,不必再用 nightly。) -->
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:11.0</ContainerBaseImage>
+    <!-- 名字里的斜杠不是装饰:Harbor 要求镜像名的第一段是**已经建好的项目名**,
+         单段的名字会被直接拒收。velashell 就是 Harbor 上那个项目
+         (harbor.easilynet.top/velashell/feeds),认证与市场也在同一个项目里,
+         所以第二段要能自说明是谁。改这里等于改推送地址。 -->
+    <ContainerRepository>velashell/feeds</ContainerRepository>
+    <ContainerImageTag>latest</ContainerImageTag>
+
+    <!-- ⚠️ 显式指定 ContainerBaseImage 会让 SDK 认定"这不是微软的默认镜像",
+         于是**不再自动设置非 root 用户** —— 不写这一行,镜像就是 root 跑的。
+         这个服务对外暴露一个公开端点,没有任何理由让它有写系统的能力。
+         app 是 aspnet 镜像里预置的用户(uid/gid 1654,即 $APP_UID)。 -->
+    <ContainerUser>app</ContainerUser>
+
+    <!-- 本机的容器运行时不止一个:这台机器上除了 Docker Desktop 还有 WSL 的容器存储(wslc),
+         留空让 SDK 自动探测的话它会挑中 wslc,镜像进了 WSL 那边,`docker images` 里查无此人,
+         compose 自然也起不来。钉死 Docker。 -->
+    <LocalRegistry>Docker</LocalRegistry>
+
+    <!-- VS 里按 F5 直接以容器方式调试本项目(SDK 容器模式,不经 Dockerfile)。 -->
+    <EnableSdkContainerDebugging>true</EnableSdkContainerDebugging>
+  </PropertyGroup>
+
+  <ItemGroup Label="容器">
+    <ContainerPort Include="8080" Type="tcp" />
+    <!-- 镜像自己就能跑:单独 `docker run` 时不必再传端口。compose 里那份是同值覆盖。 -->
+    <ContainerEnvironmentVariable Include="ASPNETCORE_HTTP_PORTS" Value="8080" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" />
   </ItemGroup>
 
   <ItemGroup>
