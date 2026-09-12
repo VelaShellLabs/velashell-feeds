@@ -109,8 +109,34 @@ dotnet test  VelaShell.Feeds.slnx
 ```powershell
 cp .env.example .env
 # 填 IDENTITY_ISSUER / MONGO_ROOT_PASSWORD / FEEDS_CLIENT_SECRET / ADMIN_SUBJECT_0
-docker compose up -d --build
+pwsh ./build/Publish-Image.ps1   # 出镜像 velashell/feeds:latest
+docker compose up -d
 ```
+
+**本仓库没有 Dockerfile** —— 镜像由 .NET SDK 的容器发布直接产出
+(`dotnet publish -t:PublishContainer`),compose 只负责跑,不负责造
+(与 velashell-identity / velashell-markets 同一条路)。所以改了代码之后要
+**先重跑一遍发布脚本**,`docker compose up -d` 不会替你重新构建,`--build` 也没有意义。
+
+镜像的名字、标签、基础镜像、非 root 用户与暴露端口全写在
+`src/VelaShell.Feeds.Api/VelaShell.Feeds.Api.csproj` 的「容器」段里,只有那一处。
+
+推到自建 Harbor:
+
+```powershell
+docker login harbor.easilynet.top
+pwsh ./build/Publish-Image.ps1 -Push          # → harbor.easilynet.top/velashell/feeds:latest
+```
+
+`-Registry` 默认就是 `harbor.easilynet.top`,推别处才需要传;**光有默认值不会推,
+必须给 `-Push`**。镜像名的第一段 `velashell` 是 Harbor 上的项目名,那个项目要先建好
+(Harbor 不会自动创建)。目标机上不重新构建,直接在 `.env` 里写
+
+```ini
+FEEDS_IMAGE=harbor.easilynet.top/velashell/feeds:latest
+```
+
+再 `docker compose pull && docker compose up -d`。
 
 反代(Nginx / Caddy)把 `https://feeds.easilynet.top` 指到容器的 `7030`,并透传
 `X-Forwarded-Proto` —— 容器里已开 `ASPNETCORE_FORWARDEDHEADERS_ENABLED`,

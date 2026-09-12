@@ -4,7 +4,6 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- MongoDB。与插件市场同一套库,连接串指向同一个副本集(不同数据库)。 -->
-    <PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.24.2-preview.1" />
     <PackageVersion Include="MongoDB.Driver" Version="3.11.0" />
   </ItemGroup>
   <ItemGroup>
