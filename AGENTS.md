@@ -89,3 +89,7 @@ docker compose up -d             # compose 只跑不造,`--build` 没有意义
 `README.md`、`AGENTS.md`。面向用户的行为说明在 velashell-docs 的
 `zh|en/host/消息中心与资讯源.md`(客户端侧)—— 本服务的字段契约与它是同一份东西,
 改了要一起改。
+
+### 提交约束
+
+- **所有提交信息与 PR 描述都不要附加 Claude Code 等 AI 工具的作者信息** —— 不加 `Co-Authored-By: Claude …` 行,也不加 `🤖 Generated with Claude Code` 之类的署名。VelaShellLabs 下所有仓库一致适用。
