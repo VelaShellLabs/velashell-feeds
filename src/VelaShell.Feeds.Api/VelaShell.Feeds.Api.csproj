@@ -7,12 +7,12 @@
   <!-- ================= 容器 =================
        镜像由 .NET SDK 直接产出(`dotnet publish -t:PublishContainer`),仓库里不再有 Dockerfile
        —— 与 velashell-identity / velashell-markets 走同一条路。
-       构建用的是**本机 SDK**,所以不存在"镜像里的 SDK 比 global.json 旧"这类问题;
-       只有运行时那一份要对上,见下面 ContainerBaseImage 的说明。 -->
+       构建用的是**本机 SDK**(仓库不钉 SDK、没有 global.json,用本机装的最新一版 11.0),
+       所以不存在"镜像里的 SDK 太旧"这类问题;只有运行时那一份要对上,见下面 ContainerBaseImage 的说明。 -->
   <PropertyGroup Label="容器">
-    <!-- 基础镜像。正式版 aspnet:11.0 里的运行时正是 11.0.0-rc.1.26425.128,与 global.json
-         钉的 SDK 同一版 —— 运行时只能向前滚补丁,基础镜像比编译用的 SDK 旧就会直接
-         "找不到框架"。换基础镜像前先确认这一点。
+    <!-- 基础镜像。镜像里的运行时**不能比编译用的 SDK 自带的那一版旧** —— 运行时只能向前滚补丁,
+         基础镜像比编译用的 SDK 旧就会直接"找不到框架"。仓库不钉 SDK,所以升级本机 SDK
+         或换基础镜像之后,都先确认这一点。
          (旧的 Dockerfile 走的是 nightly 仓库的 11.0-preview,那是 .NET 11 还没 GA 时的
          权宜之计;正式仓库现在有 11.0,不必再用 nightly。) -->
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:11.0</ContainerBaseImage>
